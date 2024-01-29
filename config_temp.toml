@@ -1,0 +1,6 @@
+[sync]
+srcpath = "d:/"
+dstpath = ""
+cachefile = "sync.json"
+dstcachefile = "sync_dst.json"
+excludeform = "exclude.txt"
