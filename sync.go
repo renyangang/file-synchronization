@@ -40,7 +40,7 @@ func init() {
 func visit(path string, info os.FileInfo, err error) error {
 	if err != nil {
 		logger.Error("visit for path: %v failed.err: %v", path, err)
-		return err
+		return nil
 	}
 	relPath := strings.Replace(path, config.ServerConfig.Sync.Srcpath, "", 1)
 	if strings.IndexRune(relPath, os.PathSeparator) == 0 {

@@ -53,7 +53,7 @@ func checkLogFile() {
 	} else {
 		return
 	}
-	log.SetOutput(logFile)
+	log.SetOutput(io.MultiWriter(logFile, os.Stdout))
 	log.SetFlags(0)
 }
 
