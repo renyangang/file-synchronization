@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,9 +27,16 @@ var excludeMap = make(map[string]bool)
 
 func init() {
 	if config.ServerConfig.Sync.Excludefrom != "" {
-		scanner := bufio.NewScanner(strings.NewReader(config.ServerConfig.Sync.Excludefrom))
+		file, err := os.Open(config.ServerConfig.Sync.Excludefrom)
+		if err != nil {
+			fmt.Println("Error opening file:", err)
+			return
+		}
+		defer file.Close()
+		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
 			path := filepath.Clean(scanner.Text())
+			fmt.Println("exclude path:", path)
 			excludeMap[path] = true
 		}
 		if err := scanner.Err(); err != nil {
@@ -46,7 +54,15 @@ func visit(path string, info os.FileInfo, err error) error {
 	if strings.IndexRune(relPath, os.PathSeparator) == 0 {
 		relPath = relPath[1:]
 	}
-	if path != config.ServerConfig.Sync.Srcpath && !excludeMap[info.Name()] && !excludeMap[relPath] && !excludeMap[path] && !excludeMap[filepath.Base(filepath.Dir(path))+string(os.PathSeparator)] {
+
+	filepaths := strings.Split(relPath, string(os.PathSeparator))
+	for i := 0; i < len(filepaths); i++ {
+		if excludeMap[filepaths[i]] {
+			return nil
+		}
+	}
+
+	if path != config.ServerConfig.Sync.Srcpath && !excludeMap[info.Name()] && !excludeMap[relPath] && !excludeMap[path] {
 		srcSyncFileMap[relPath] = &SyncFileInfo{
 			Name:    info.Name(),
 			Size:    info.Size(),
