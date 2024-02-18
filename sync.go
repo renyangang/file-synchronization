@@ -102,31 +102,43 @@ func MakeSrcInfo() {
 	saveCacheFile(srcSyncFileMap, config.ServerConfig.Sync.Cachefile)
 }
 
-func loadSrcCache() {
+func loadCacheFile(path string) map[string]*SyncFileInfo {
+	tempMap := make(map[string]*SyncFileInfo)
 	// 读取JSON文件
-	jsonData, err := os.ReadFile(config.ServerConfig.Sync.Cachefile)
+	jsonData, err := os.ReadFile(path)
 	if err != nil {
-		logger.Error("read cache file: %v failed. Error: %v", config.ServerConfig.Sync.Cachefile, err)
-		return
+		logger.Error("read cache file: %v failed. Error: %v", path, err)
+		return nil
 	}
-	err = json.Unmarshal(jsonData, &srcSyncFileMap)
+	err = json.Unmarshal(jsonData, &tempMap)
 	if err != nil {
 		logger.Error("Unmarshal Json failed. Error: %v", err)
-		return
+		return nil
+	}
+	return tempMap
+}
+
+func loadSrcCache() {
+	// 读取JSON文件
+	tempMap := loadCacheFile(config.ServerConfig.Sync.Cachefile)
+	if tempMap != nil {
+		for k, v := range tempMap {
+			srcSyncFileMap[filepath.FromSlash(k)] = v
+		}
+	} else {
+		logger.Error("load cache file: %v failed.", config.ServerConfig.Sync.Cachefile)
 	}
 }
 
 func loadDstCache() {
 	// 读取JSON文件
-	jsonData, err := os.ReadFile(config.ServerConfig.Sync.Dstcachefile)
-	if err != nil {
-		logger.Error("read cache file: %v failed. Error: %v", config.ServerConfig.Sync.Dstcachefile, err)
-		return
-	}
-	err = json.Unmarshal(jsonData, &dstSyncFileMap)
-	if err != nil {
-		logger.Error("Unmarshal Json failed. Error: %v", err)
-		return
+	tempMap := loadCacheFile(config.ServerConfig.Sync.Dstcachefile)
+	if tempMap != nil {
+		for k, v := range tempMap {
+			dstSyncFileMap[filepath.FromSlash(k)] = v
+		}
+	} else {
+		logger.Error("load cache file: %v failed.", config.ServerConfig.Sync.Dstcachefile)
 	}
 }
 
