@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"path/filepath"
 
 	"stacktrace.top/filesync/logger"
 )
@@ -27,6 +28,8 @@ func (o *OsSyncOper) SyncFile(srcFilePath string, dstFilePath string, fileInfo *
 			logger.Info("read file: %v failed.err: %v", srcFilePath, err)
 			return err
 		}
+		path := filepath.Dir(dstFilePath)
+		os.MkdirAll(path, os.ModePerm)
 		err = os.WriteFile(dstFilePath, data, fileInfo.Mode)
 		if err != nil {
 			logger.Info("write file: %v failed.err: %v", dstFilePath, err)

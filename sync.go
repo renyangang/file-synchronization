@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"stacktrace.top/filesync/config"
@@ -166,15 +167,21 @@ func makeSyncOper() SyncOper {
 
 func syncFiles(diffFiles map[string]*SyncFileInfo) {
 	syncOper := makeSyncOper()
-	for filePath, fileInfo := range diffFiles {
-		logger.Info("sync file: %v", filePath)
-		srcFilePath := filepath.Join(config.ServerConfig.Sync.Srcpath, filePath)
-		dstFilePath := filepath.Join(config.ServerConfig.Sync.Dstpath, filePath)
-		err := syncOper.SyncFile(srcFilePath, dstFilePath, fileInfo)
-		if err == nil {
-			dstSyncFileMap[filePath] = fileInfo
-		}
+	var wg sync.WaitGroup
+	for fp, fi := range diffFiles {
+		wg.Add(1)
+		go func(filePath string, fileInfo *SyncFileInfo) {
+			defer wg.Done()
+			logger.Info("sync file: %v", filePath)
+			srcFilePath := filepath.Join(config.ServerConfig.Sync.Srcpath, filePath)
+			dstFilePath := filepath.Join(config.ServerConfig.Sync.Dstpath, filePath)
+			err := syncOper.SyncFile(srcFilePath, dstFilePath, fileInfo)
+			if err == nil {
+				dstSyncFileMap[filePath] = fileInfo
+			}
+		}(fp, fi)
 	}
+	wg.Wait()
 }
 
 func DoSync() {
