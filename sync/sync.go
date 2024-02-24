@@ -162,28 +162,3 @@ func Compare() map[string]*SyncFileInfo {
 	}
 	return diffFiles
 }
-
-func CompareDiffFiles() map[string]*SyncFileInfo {
-	syncOper := makeSyncOper()
-	diffFiles, err := syncOper.CompareDiffFiles()
-	if err != nil {
-		logger.Error("CompareDiffFiles failed. Error: %v", err)
-		return nil
-	}
-	return diffFiles
-}
-
-func makeSyncOper() SyncOper {
-	return &OsSyncOper{}
-}
-
-func syncFiles(diffFiles map[string]*SyncFileInfo) {
-	syncOper := makeSyncOper()
-	syncOper.SyncFiles(diffFiles)
-}
-
-func DoSync() {
-	diffFiles := CompareDiffFiles()
-	syncFiles(diffFiles)
-	saveCacheFile(DstSyncFileMap, config.InstanceConfig.Sync.Dstcachefile)
-}

@@ -4,6 +4,8 @@ dstpath = ""
 cachefile = "sync.json"
 dstcachefile = "sync_dst.json"
 excludeform = "exclude.txt"
+# 0: 本地拷贝 1: 网络模式
+syncmode = 1
 [server]
 port = 8000
 token = "123456"

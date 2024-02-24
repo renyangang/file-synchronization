@@ -8,6 +8,11 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	LOCAL_MODE = 0
+	NET_MODE   = 1
+)
+
 type Config struct {
 	Sync   SyncConfig
 	Server ServerConfig
@@ -20,6 +25,7 @@ type SyncConfig struct {
 	Cachefile    string
 	Dstcachefile string
 	Excludefrom  string
+	Syncmode     int
 }
 
 type ServerConfig struct {
