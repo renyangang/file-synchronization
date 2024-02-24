@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+
+	"stacktrace.top/filesync/sync"
 )
 
 func main() {
@@ -11,13 +13,13 @@ func main() {
 		switch args[0] {
 		case "makecache":
 			// 执行makecache操作
-			MakeSrcInfo()
+			sync.MakeSrcInfo()
 		case "compare":
 			// 执行compare操作
-			CompareDiffFiles()
+			sync.CompareDiffFiles()
 		case "sync":
 			// 执行sync操作
-			DoSync()
+			sync.DoSync()
 		default:
 			fmt.Println("usage: filesync makecache | compare | sync")
 		}

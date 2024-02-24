@@ -9,7 +9,9 @@ import (
 )
 
 type Config struct {
-	Sync SyncConfig
+	Sync   SyncConfig
+	Server ServerConfig
+	Client ClientConfig
 }
 
 type SyncConfig struct {
@@ -20,7 +22,22 @@ type SyncConfig struct {
 	Excludefrom  string
 }
 
-var ServerConfig Config
+type ServerConfig struct {
+	Port        int
+	Token       string
+	Compression bool
+	Workers     int
+	Blocksize   int
+}
+
+type ClientConfig struct {
+	Serverip   string
+	Serverport int
+	Token      string
+	Threads    int
+}
+
+var InstanceConfig Config
 
 func init() {
 	v := viper.New()
@@ -30,9 +47,10 @@ func init() {
 	if err := v.ReadInConfig(); err != nil {
 		logger.Error("read config failed.err:%s", err)
 	}
-	if err := v.Unmarshal(&ServerConfig); err != nil {
+	if err := v.Unmarshal(&InstanceConfig); err != nil {
 		logger.Error("make config obj failed.err:%s", err)
 	}
-	ServerConfig.Sync.Srcpath = filepath.Clean(ServerConfig.Sync.Srcpath)
-	logger.Info("config read:%v", ServerConfig)
+	InstanceConfig.Sync.Srcpath = filepath.Clean(InstanceConfig.Sync.Srcpath)
+	InstanceConfig.Server.Blocksize *= (1024 * 1024)
+	logger.Info("config read:%v", InstanceConfig)
 }

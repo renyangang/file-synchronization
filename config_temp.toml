@@ -4,3 +4,13 @@ dstpath = ""
 cachefile = "sync.json"
 dstcachefile = "sync_dst.json"
 excludeform = "exclude.txt"
+[server]
+port = 8000
+token = "123456"
+compression = true
+blocksize = 1024
+[client]
+serverip = "127.0.0.1"
+serverport = 8000
+token = "123456"
+threads = 10

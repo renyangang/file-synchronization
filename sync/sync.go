@@ -1,4 +1,4 @@
-package main
+package sync
 
 import (
 	"bufio"
@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	"stacktrace.top/filesync/config"
@@ -23,12 +22,12 @@ type SyncFileInfo struct {
 }
 
 var srcSyncFileMap = make(map[string]*SyncFileInfo)
-var dstSyncFileMap = make(map[string]*SyncFileInfo)
+var DstSyncFileMap = make(map[string]*SyncFileInfo)
 var excludeMap = make(map[string]bool)
 
 func init() {
-	if config.ServerConfig.Sync.Excludefrom != "" {
-		file, err := os.Open(config.ServerConfig.Sync.Excludefrom)
+	if config.InstanceConfig.Sync.Excludefrom != "" {
+		file, err := os.Open(config.InstanceConfig.Sync.Excludefrom)
 		if err != nil {
 			fmt.Println("Error opening file:", err)
 			return
@@ -51,7 +50,7 @@ func visit(path string, info os.FileInfo, err error) error {
 		logger.Error("visit for path: %v failed.err: %v", path, err)
 		return nil
 	}
-	relPath := strings.Replace(path, config.ServerConfig.Sync.Srcpath, "", 1)
+	relPath := strings.Replace(path, config.InstanceConfig.Sync.Srcpath, "", 1)
 	if strings.IndexRune(relPath, os.PathSeparator) == 0 {
 		relPath = relPath[1:]
 	}
@@ -63,7 +62,7 @@ func visit(path string, info os.FileInfo, err error) error {
 		}
 	}
 
-	if path != config.ServerConfig.Sync.Srcpath && !excludeMap[info.Name()] && !excludeMap[relPath] && !excludeMap[path] {
+	if path != config.InstanceConfig.Sync.Srcpath && !excludeMap[info.Name()] && !excludeMap[relPath] && !excludeMap[path] {
 		srcSyncFileMap[relPath] = &SyncFileInfo{
 			Name:    info.Name(),
 			Size:    info.Size(),
@@ -99,8 +98,13 @@ func saveCacheFile(fileMap map[string]*SyncFileInfo, filepath string) {
 }
 
 func MakeSrcInfo() {
-	fetchDir(config.ServerConfig.Sync.Srcpath)
-	saveCacheFile(srcSyncFileMap, config.ServerConfig.Sync.Cachefile)
+	fetchDir(config.InstanceConfig.Sync.Srcpath)
+	saveCacheFile(srcSyncFileMap, config.InstanceConfig.Sync.Cachefile)
+}
+
+func MakeDirInfo(path string) map[string]*SyncFileInfo {
+	fetchDir(path)
+	return srcSyncFileMap
 }
 
 func loadCacheFile(path string) map[string]*SyncFileInfo {
@@ -119,44 +123,52 @@ func loadCacheFile(path string) map[string]*SyncFileInfo {
 	return tempMap
 }
 
-func loadSrcCache() {
+func LoadSrcCache() {
 	// 读取JSON文件
-	tempMap := loadCacheFile(config.ServerConfig.Sync.Cachefile)
+	tempMap := loadCacheFile(config.InstanceConfig.Sync.Cachefile)
 	if tempMap != nil {
 		for k, v := range tempMap {
 			srcSyncFileMap[filepath.FromSlash(k)] = v
 		}
 	} else {
-		logger.Error("load cache file: %v failed.", config.ServerConfig.Sync.Cachefile)
+		logger.Error("load cache file: %v failed.", config.InstanceConfig.Sync.Cachefile)
 	}
 }
 
 func loadDstCache() {
 	// 读取JSON文件
-	tempMap := loadCacheFile(config.ServerConfig.Sync.Dstcachefile)
+	tempMap := loadCacheFile(config.InstanceConfig.Sync.Dstcachefile)
 	if tempMap != nil {
 		for k, v := range tempMap {
-			dstSyncFileMap[filepath.FromSlash(k)] = v
+			DstSyncFileMap[filepath.FromSlash(k)] = v
 		}
 	} else {
-		logger.Error("load cache file: %v failed.", config.ServerConfig.Sync.Dstcachefile)
+		logger.Error("load cache file: %v failed.", config.InstanceConfig.Sync.Dstcachefile)
 	}
 }
 
-func CompareDiffFiles() map[string]*SyncFileInfo {
-	loadSrcCache()
-	loadDstCache()
+func Compare() map[string]*SyncFileInfo {
 	diffFiles := make(map[string]*SyncFileInfo)
 	// 比较差异文件
 	for filePath, fileInfo := range srcSyncFileMap {
-		if _, ok := dstSyncFileMap[filePath]; !ok {
+		if _, ok := DstSyncFileMap[filePath]; !ok {
 			// 文件在源目录但不在目标目录，需要上传
 			logger.Info("File %s is not exist in dst, need sync.", filePath)
 			diffFiles[filePath] = fileInfo
-		} else if !fileInfo.IsDir && (dstSyncFileMap[filePath].ModTime.Before(fileInfo.ModTime) || fileInfo.Size != dstSyncFileMap[filePath].Size) {
+		} else if !fileInfo.IsDir && (DstSyncFileMap[filePath].ModTime.Before(fileInfo.ModTime) || fileInfo.Size != DstSyncFileMap[filePath].Size) {
 			logger.Info("File %s is modified in src, need sync.", filePath)
 			diffFiles[filePath] = fileInfo
 		}
+	}
+	return diffFiles
+}
+
+func CompareDiffFiles() map[string]*SyncFileInfo {
+	syncOper := makeSyncOper()
+	diffFiles, err := syncOper.CompareDiffFiles()
+	if err != nil {
+		logger.Error("CompareDiffFiles failed. Error: %v", err)
+		return nil
 	}
 	return diffFiles
 }
@@ -167,25 +179,11 @@ func makeSyncOper() SyncOper {
 
 func syncFiles(diffFiles map[string]*SyncFileInfo) {
 	syncOper := makeSyncOper()
-	var wg sync.WaitGroup
-	for fp, fi := range diffFiles {
-		wg.Add(1)
-		go func(filePath string, fileInfo *SyncFileInfo) {
-			defer wg.Done()
-			logger.Info("sync file: %v", filePath)
-			srcFilePath := filepath.Join(config.ServerConfig.Sync.Srcpath, filePath)
-			dstFilePath := filepath.Join(config.ServerConfig.Sync.Dstpath, filePath)
-			err := syncOper.SyncFile(srcFilePath, dstFilePath, fileInfo)
-			if err == nil {
-				dstSyncFileMap[filePath] = fileInfo
-			}
-		}(fp, fi)
-	}
-	wg.Wait()
+	syncOper.SyncFiles(diffFiles)
 }
 
 func DoSync() {
 	diffFiles := CompareDiffFiles()
 	syncFiles(diffFiles)
-	saveCacheFile(dstSyncFileMap, config.ServerConfig.Sync.Dstcachefile)
+	saveCacheFile(DstSyncFileMap, config.InstanceConfig.Sync.Dstcachefile)
 }
