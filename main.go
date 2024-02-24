@@ -59,6 +59,8 @@ func main() {
 		case "sync":
 			// 执行sync操作
 			DoSync()
+		case "daemon":
+			net.StartServer()
 		default:
 			fmt.Println("usage: filesync makecache | compare | sync")
 		}
