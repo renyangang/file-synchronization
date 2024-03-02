@@ -148,6 +148,7 @@ func (syncServer *SyncServer) sync(msg *SyncCmdMsg) {
 			}
 			defer file.Close()
 			offset := int64(0)
+			logger.Info("begin sync file: %v, %v", msg.DstDir, totalSize)
 			for offset < totalSize {
 				fileResMsg := &SyncRespMsg{
 					MsgType:  MSG_FILEPART,
@@ -341,11 +342,11 @@ func (sc *SyncClient) SyncFile(srcFilePath string, dstFilePath string, fileInfo 
 		if err != nil {
 			return err
 		}
-		// logger.Info("sync file for: %v", resMsg)
+		logger.Info("sync file for: %v", resMsg)
 		if resMsg.MsgType == MSG_FILEPART {
 			bufLen := resMsg.PartSize
-			if bufLen > fileInfo.Size {
-				bufLen = fileInfo.Size
+			if bufLen+resMsg.OffSet > fileInfo.Size {
+				bufLen = fileInfo.Size - resMsg.OffSet
 			}
 			// 发送分片
 			buf := make([]byte, bufLen)
