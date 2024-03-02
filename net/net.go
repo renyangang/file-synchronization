@@ -120,6 +120,7 @@ func (syncServer *SyncServer) sync(msg *SyncCmdMsg) {
 		Err:       nil,
 		FileInfos: nil,
 	}
+	logger.Info("begin sync file: %v, %v", msg.DstDir, msg.SyncInfo)
 	if msg.DstDir == "" || msg.SyncInfo == nil {
 		resMsg.ResCode = 1
 		resMsg.Err = errors.New("no dst dir or syncFileInfo provide")
@@ -148,7 +149,6 @@ func (syncServer *SyncServer) sync(msg *SyncCmdMsg) {
 			}
 			defer file.Close()
 			offset := int64(0)
-			logger.Info("begin sync file: %v, %v", msg.DstDir, totalSize)
 			for offset < totalSize {
 				fileResMsg := &SyncRespMsg{
 					MsgType:  MSG_FILEPART,
