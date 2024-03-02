@@ -256,6 +256,7 @@ func (sc *SyncClient) CompareDiffFiles() (map[string]*sync.SyncFileInfo, error) 
 		logger.Error("read compare response failed. err: %v", err)
 		return nil, err
 	}
+	logger.Info("compare diff files: %v", resMsg)
 	sync.DstSyncFileMap = resMsg.FileInfos
 	sync.LoadSrcCache()
 	return sync.Compare(), nil
