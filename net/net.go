@@ -156,17 +156,25 @@ func (syncServer *SyncServer) sync(msg *SyncCmdMsg) {
 					PartSize: int64(bufSize),
 				}
 				syncServer.response(fileResMsg)
-				n, err := syncServer.conn.Read(revBuffer)
-				if err != nil {
-					logger.Error("read file content failed. err: %v", err)
-					syncServer.Stop()
-					return
+				readLen := 0
+				for readLen < bufSize {
+					n, err := syncServer.conn.Read(revBuffer)
+					if err != nil {
+						logger.Error("read file content failed. err: %v", err)
+						syncServer.Stop()
+						return
+					}
+					if offset+int64(n) > totalSize {
+						n = int(totalSize - offset)
+					}
+					file.Write(revBuffer[:n])
+					offset += int64(n)
+					if offset >= totalSize {
+						break
+					}
+					readLen += n
 				}
-				if offset+int64(n) > totalSize {
-					n = int(totalSize - offset)
-				}
-				file.Write(revBuffer[:n])
-				offset += int64(n)
+
 			}
 		}
 		err := os.Chtimes(msg.DstDir, msg.SyncInfo.ModTime, msg.SyncInfo.ModTime)
@@ -356,7 +364,15 @@ func (sc *SyncClient) SyncFile(srcFilePath string, dstFilePath string, fileInfo 
 				logger.Info("sync file for: %v", resMsg)
 				return err
 			}
-			sc.conn.Write(buf[:size])
+			writeLen := 0
+			for writeLen < size {
+				n, err := sc.conn.Write(buf[writeLen:size])
+				writeLen += n
+				if err != nil {
+					logger.Error("write file failed. file: %v, err: %v", srcFilePath, err)
+					break
+				}
+			}
 		} else if resMsg.MsgType == MSG_SYNC && resMsg.ResCode != RES_SUCCESS {
 			return fmt.Errorf("sync file failed. file: %v, res: %v", srcFilePath, resMsg.ResCode)
 		} else {
