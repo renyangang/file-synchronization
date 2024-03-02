@@ -99,12 +99,17 @@ func ReadForSyncRespMsg(conn *net.TCPConn) (*SyncRespMsg, error) {
 	logger.Info("get msg len: %v", msgLen)
 	// 读取消息内容
 	msgBytes := make([]byte, msgLen)
-	n, err := conn.Read(msgBytes)
-	if err != nil {
-		logger.Error("read msg failed. err: %v", err)
-		return nil, err
+	readLen := 0
+	for readLen < int(msgLen) {
+		n, err := conn.Read(msgBytes[readLen:])
+		if err != nil {
+			logger.Error("read msg failed. err: %v", err)
+			return nil, err
+		}
+		// logger.Info("read msg len: %v", n)
+		readLen += n
 	}
-	logger.Info("read msg len: %v", n)
+
 	// 解析消息
 	respMsg := &SyncRespMsg{}
 	err = json.Unmarshal(msgBytes, respMsg)
@@ -135,6 +140,6 @@ func WriteForSyncRespMsg(conn *net.TCPConn, respMsg *SyncRespMsg) error {
 		logger.Error("write msg failed. err: %v", err)
 		return err
 	}
-	logger.Info("write msg len: %v", n)
+	logger.Info("writed msg len: %v", n)
 	return nil
 }

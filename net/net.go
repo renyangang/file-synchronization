@@ -59,6 +59,7 @@ func (syncServer *SyncServer) Loop() {
 	}
 	syncServer.response(resMsg)
 	for syncServer.running {
+		syncServer.conn.SetReadDeadline(time.Now().AddDate(10, 0, 0))
 		msg, err = ReadForSyncMsg(syncServer.conn)
 		if netErr, ok := err.(net.Error); ok {
 			if !netErr.Timeout() {
