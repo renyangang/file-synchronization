@@ -67,6 +67,10 @@ func (syncServer *SyncServer) Loop() {
 				break
 			}
 		}
+		if err != nil {
+			logger.Error("read msg error: %v", err)
+			continue
+		}
 		syncServer.ProcMsg(msg)
 	}
 }
