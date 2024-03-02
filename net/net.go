@@ -106,6 +106,7 @@ func (syncServer *SyncServer) makeCache(msg *SyncCmdMsg) {
 		resMsg.ResCode = 1
 		resMsg.Err = errors.New("no dst dir provide")
 	} else {
+		logger.Info("make cache for %s", msg.DstDir)
 		cacheMap := sync.MakeDirInfo(msg.DstDir)
 		resMsg.FileInfos = cacheMap
 	}
@@ -151,7 +152,7 @@ func (syncServer *SyncServer) sync(msg *SyncCmdMsg) {
 				fileResMsg := &SyncRespMsg{
 					MsgType:  MSG_FILEPART,
 					OffSet:   offset,
-					PartSize: int64(config.InstanceConfig.Server.Blocksize),
+					PartSize: int64(bufSize),
 				}
 				syncServer.response(fileResMsg)
 				n, err := syncServer.conn.Read(revBuffer)
@@ -159,6 +160,9 @@ func (syncServer *SyncServer) sync(msg *SyncCmdMsg) {
 					logger.Error("read file content failed. err: %v", err)
 					syncServer.Stop()
 					return
+				}
+				if offset+int64(n) > totalSize {
+					n = int(totalSize - offset)
 				}
 				file.Write(revBuffer[:n])
 				offset += int64(n)
@@ -256,8 +260,13 @@ func (sc *SyncClient) CompareDiffFiles() (map[string]*sync.SyncFileInfo, error) 
 		logger.Error("read compare response failed. err: %v", err)
 		return nil, err
 	}
-	logger.Info("compare diff files: %v", resMsg)
-	sync.DstSyncFileMap = resMsg.FileInfos
+	if resMsg.MsgType != MSG_MAKECACHE || resMsg.ResCode != RES_SUCCESS {
+		logger.Error("resmsg is invalid, %v %v", resMsg.MsgType, resMsg.ResCode)
+		return nil, errors.New("resmsg is invalid")
+	}
+	for k, v := range resMsg.FileInfos {
+		sync.DstSyncFileMap[filepath.FromSlash(k)] = v
+	}
 	sync.LoadSrcCache()
 	return sync.Compare(), nil
 }
@@ -308,27 +317,42 @@ func (sc *SyncClient) SyncFile(srcFilePath string, dstFilePath string, fileInfo 
 		DstDir:   dstFilePath,
 		SyncInfo: fileInfo,
 	}
+	logger.Info("begin sync file: %v", fileInfo)
+	if fileInfo.Size == 0 && !fileInfo.IsDir {
+		logger.Info("zero file: %v", srcFilePath)
+		return nil
+	}
 	err := WriteForSyncMsg(sc.conn, msg)
 	if err != nil {
 		return err
 	}
+	if fileInfo.IsDir {
+		return nil
+	}
+	file, err := os.Open(srcFilePath)
+	if err != nil {
+		logger.Error("open file failed. file: %v, err: %v", srcFilePath, err)
+		return err
+	}
+	defer file.Close()
 	for {
 		// 等待分片请求
 		resMsg, err := ReadForSyncRespMsg(sc.conn)
 		if err != nil {
 			return err
 		}
+		// logger.Info("sync file for: %v", resMsg)
 		if resMsg.MsgType == MSG_FILEPART {
-			// 发送分片
-			file, err := os.Open(srcFilePath)
-			if err != nil {
-				logger.Error("open file failed. file: %v, err: %v", srcFilePath, err)
-				return err
+			bufLen := resMsg.PartSize
+			if bufLen > fileInfo.Size {
+				bufLen = fileInfo.Size
 			}
-			buf := make([]byte, resMsg.PartSize)
+			// 发送分片
+			buf := make([]byte, bufLen)
 			size, err := file.ReadAt(buf, resMsg.OffSet)
 			if err != nil {
 				logger.Error("read file failed. file: %v, err: %v", srcFilePath, err)
+				logger.Info("sync file for: %v", resMsg)
 				return err
 			}
 			sc.conn.Write(buf[:size])

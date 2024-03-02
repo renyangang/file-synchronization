@@ -43,6 +43,11 @@ func syncFiles(diffFiles map[string]*sync.SyncFileInfo) {
 
 func DoSync() {
 	diffFiles := CompareDiffFiles()
+	// mySyncFiles := make(map[string]*sync.SyncFileInfo)
+	// for k, v := range diffFiles {
+	// 	mySyncFiles[k] = v
+	// 	break
+	// }
 	syncFiles(diffFiles)
 }
 

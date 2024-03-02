@@ -153,10 +153,10 @@ func Compare() map[string]*SyncFileInfo {
 	for filePath, fileInfo := range srcSyncFileMap {
 		if _, ok := DstSyncFileMap[filePath]; !ok {
 			// 文件在源目录但不在目标目录，需要上传
-			logger.Info("File %s is not exist in dst, need sync.", filePath)
+			// logger.Info("File %s is not exist in dst, need sync.", filePath)
 			diffFiles[filePath] = fileInfo
 		} else if !fileInfo.IsDir && (DstSyncFileMap[filePath].ModTime.Before(fileInfo.ModTime) || fileInfo.Size != DstSyncFileMap[filePath].Size) {
-			logger.Info("File %s is modified in src, need sync.", filePath)
+			// logger.Info("File %s is modified in src, need sync.", filePath)
 			diffFiles[filePath] = fileInfo
 		}
 	}

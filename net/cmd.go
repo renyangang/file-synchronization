@@ -101,7 +101,7 @@ func ReadForSyncRespMsg(conn *net.TCPConn) (*SyncRespMsg, error) {
 		logger.Error("read msg len failed. err: %v", err)
 		return nil, err
 	}
-	logger.Info("get msg len: %v", msgLen)
+	// logger.Info("get msg len: %v", msgLen)
 	// 读取消息内容
 	msgBytes := make([]byte, msgLen)
 	readLen := 0
