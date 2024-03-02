@@ -43,16 +43,21 @@ func ReadForSyncMsg(conn *net.TCPConn) (*SyncCmdMsg, error) {
 	var msgLen uint32
 	err := binary.Read(conn, binary.BigEndian, &msgLen)
 	if err != nil {
-		logger.Error("read msg len failed. err: %v", err)
+		logger.Error("read msg len failed. conn: %v err: %v", conn, err)
 		return nil, err
 	}
 	// 读取消息内容
 	msgBytes := make([]byte, msgLen)
-	_, err = conn.Read(msgBytes)
-	if err != nil {
-		logger.Error("read msg failed. err: %v", err)
-		return nil, err
+	readLen := 0
+	for readLen < int(msgLen) {
+		n, err := conn.Read(msgBytes)
+		if err != nil {
+			logger.Error("read msg failed. err: %v", err)
+			return nil, err
+		}
+		readLen += n
 	}
+
 	// 解析消息
 	msg := &SyncCmdMsg{}
 	err = json.Unmarshal(msgBytes, msg)
