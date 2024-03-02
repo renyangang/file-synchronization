@@ -174,7 +174,6 @@ func (syncServer *SyncServer) sync(msg *SyncCmdMsg) {
 					}
 					readLen += n
 				}
-
 			}
 		}
 		err := os.Chtimes(msg.DstDir, msg.SyncInfo.ModTime, msg.SyncInfo.ModTime)
