@@ -130,10 +130,11 @@ func WriteForSyncRespMsg(conn *net.TCPConn, respMsg *SyncRespMsg) error {
 		return err
 	}
 	// 写入消息内容
-	_, err = conn.Write(msgBytes)
+	n, err := conn.Write(msgBytes)
 	if err != nil {
 		logger.Error("write msg failed. err: %v", err)
 		return err
 	}
+	logger.Info("write msg len: %v", n)
 	return nil
 }
