@@ -159,7 +159,7 @@ func (syncServer *SyncServer) sync(msg *SyncCmdMsg) {
 				readLen := 0
 				for readLen < bufSize {
 					n, err := syncServer.conn.Read(revBuffer)
-					if err != nil {
+					if err != nil && offset+int64(n) < totalSize {
 						logger.Error("read file content failed. err: %v", err)
 						syncServer.Stop()
 						return
@@ -231,6 +231,10 @@ func (sc *SyncClient) SendToken() error {
 	return SendToken(sc.conn)
 }
 
+func (sc *SyncClient) Stop() {
+	sc.conn.Close()
+}
+
 func SendToken(conn *net.TCPConn) error {
 	msg := &SyncCmdMsg{
 		MsgType: MSG_TOKEN,
@@ -294,10 +298,17 @@ func (sc *SyncClient) SyncFiles(diffFiles map[string]*sync.SyncFileInfo) {
 					srcFilePath := filepath.Join(config.InstanceConfig.Sync.Srcpath, sInfo.FilePath)
 					dstFilePath := filepath.Join(config.InstanceConfig.Sync.Dstpath, sInfo.FilePath)
 					err := scFile.SyncFile(srcFilePath, dstFilePath, sInfo.FileInfo)
+					resChan <- 1
 					if err != nil {
 						logger.Error("sync file failed. err: %v", err)
+						scFile.Stop()
+						scFile, err = StartClient()
+						if err != nil {
+							logger.Error("start client failed. err: %v", err)
+							return
+						}
 					}
-					resChan <- 1
+
 				}
 			}()
 		}
@@ -334,9 +345,9 @@ func (sc *SyncClient) SyncFile(srcFilePath string, dstFilePath string, fileInfo 
 	if err != nil {
 		return err
 	}
-	if fileInfo.IsDir {
-		return nil
-	}
+	// if fileInfo.IsDir {
+	// 	return nil
+	// }
 	file, err := os.Open(srcFilePath)
 	if err != nil {
 		logger.Error("open file failed. file: %v, err: %v", srcFilePath, err)
@@ -349,7 +360,7 @@ func (sc *SyncClient) SyncFile(srcFilePath string, dstFilePath string, fileInfo 
 		if err != nil {
 			return err
 		}
-		logger.Info("sync file for: %v", resMsg)
+		// logger.Info("sync file for: %v", resMsg)
 		if resMsg.MsgType == MSG_FILEPART {
 			bufLen := resMsg.PartSize
 			if bufLen+resMsg.OffSet > fileInfo.Size {
