@@ -338,13 +338,14 @@ func (sc *SyncClient) SyncFile(srcFilePath string, dstFilePath string, fileInfo 
 		SyncInfo: fileInfo,
 	}
 	// logger.Info("begin sync file: %v", fileInfo)
-	if fileInfo.Size == 0 && !fileInfo.IsDir {
-		// logger.Info("zero file: %v", srcFilePath)
-		return nil
-	}
+
 	err := WriteForSyncMsg(sc.conn, msg)
 	if err != nil {
 		return err
+	}
+	if fileInfo.Size == 0 && !fileInfo.IsDir {
+		// logger.Info("zero file: %v", srcFilePath)
+		return nil
 	}
 	// if fileInfo.IsDir {
 	// 	return nil
