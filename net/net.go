@@ -328,6 +328,7 @@ func (sc *SyncClient) SyncFiles(diffFiles map[string]*sync.SyncFileInfo) {
 			break
 		}
 	}
+	logger.Info("sync file finished")
 }
 
 func (sc *SyncClient) SyncFile(srcFilePath string, dstFilePath string, fileInfo *sync.SyncFileInfo) error {
@@ -336,9 +337,9 @@ func (sc *SyncClient) SyncFile(srcFilePath string, dstFilePath string, fileInfo 
 		DstDir:   dstFilePath,
 		SyncInfo: fileInfo,
 	}
-	logger.Info("begin sync file: %v", fileInfo)
+	// logger.Info("begin sync file: %v", fileInfo)
 	if fileInfo.Size == 0 && !fileInfo.IsDir {
-		logger.Info("zero file: %v", srcFilePath)
+		// logger.Info("zero file: %v", srcFilePath)
 		return nil
 	}
 	err := WriteForSyncMsg(sc.conn, msg)

@@ -10,7 +10,14 @@ import (
 	"time"
 )
 
+type LogMsg struct {
+	Prefix string
+	Msg    string
+	Args   []any
+}
+
 var logFile *os.File
+var logChan chan *LogMsg
 
 const logFileName = "logs/filesync.log"
 
@@ -28,8 +35,10 @@ func createLogDir() {
 }
 
 func init() {
+	logChan = make(chan *LogMsg, 100)
 	createLogDir()
 	checkLogFile()
+	go doLog()
 }
 
 func createLogFile() {
@@ -73,15 +82,27 @@ func getCallerInfo(skip int) (info string) {
 }
 
 func Info(msg string, args ...any) {
-	checkLogFile()
-	log.SetPrefix("[INFO] " + getCallerInfo(2) + " ")
-	log.Printf(msg+"\n", args...)
+	logChan <- &LogMsg{
+		Prefix: "[INFO] " + getCallerInfo(2) + " ",
+		Msg:    msg,
+		Args:   args,
+	}
 }
 
 func Error(msg string, args ...any) {
-	checkLogFile()
-	log.SetPrefix("[ERROR] " + getCallerInfo(2) + " ")
-	log.Printf(msg+"\n", args...)
+	logChan <- &LogMsg{
+		Prefix: "[ERROR] " + getCallerInfo(2) + " ",
+		Msg:    msg,
+		Args:   args,
+	}
+}
+
+func doLog() {
+	for msg := range logChan {
+		checkLogFile()
+		log.SetPrefix(msg.Prefix)
+		log.Printf(msg.Msg+"\n", msg.Args...)
+	}
 }
 
 func Writer() io.Writer {

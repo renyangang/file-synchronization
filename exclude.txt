@@ -4,3 +4,8 @@ ad9245dfad313eddb47870108c982c6f/
 chrome/
 $RECYCLE.BIN/
 WeGameApps/
+localmsg/
+MailMasterData/
+Program Files/
+Program Files (x86)/
+迅雷下载/
