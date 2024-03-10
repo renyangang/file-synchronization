@@ -24,9 +24,8 @@ type SyncServer struct {
 }
 
 type SyncClient struct {
-	conn           *net.TCPConn
-	dstFileInfoMap map[string]*sync.SyncFileInfo
-	infoChan       chan *SyncInfo
+	conn     *net.TCPConn
+	infoChan chan *SyncInfo
 }
 
 func (syncServer *SyncServer) Stop() {

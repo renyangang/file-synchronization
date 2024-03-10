@@ -24,6 +24,7 @@ type SyncFileInfo struct {
 var srcSyncFileMap = make(map[string]*SyncFileInfo)
 var DstSyncFileMap = make(map[string]*SyncFileInfo)
 var excludeMap = make(map[string]bool)
+var srcPath string
 
 func init() {
 	if config.InstanceConfig.Sync.Excludefrom != "" {
@@ -50,7 +51,7 @@ func visit(path string, info os.FileInfo, err error) error {
 		logger.Error("visit for path: %v failed.err: %v", path, err)
 		return nil
 	}
-	relPath := strings.Replace(path, config.InstanceConfig.Sync.Srcpath, "", 1)
+	relPath := strings.Replace(path, srcPath, "", 1)
 	if strings.IndexRune(relPath, os.PathSeparator) == 0 {
 		relPath = relPath[1:]
 	}
@@ -75,10 +76,11 @@ func visit(path string, info os.FileInfo, err error) error {
 }
 
 func fetchDir(rootDir string) {
+	srcPath = rootDir
 	// 使用filepath.Walk来递归遍历目录
-	err := filepath.Walk(rootDir, visit)
+	err := filepath.Walk(srcPath, visit)
 	if err != nil {
-		logger.Error("fetchDir for path: %v failed.err: %v", rootDir, err)
+		logger.Error("fetchDir for path: %v failed.err: %v", srcPath, err)
 	}
 }
 
