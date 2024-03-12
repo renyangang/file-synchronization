@@ -132,7 +132,7 @@ func WriteForSyncRespMsg(conn *net.TCPConn, respMsg *SyncRespMsg) error {
 		logger.Error("marshal msg failed. err: %v", err)
 		return err
 	}
-	logger.Info("write msg len: %v", len(msgBytes))
+	// logger.Info("write msg len: %v", len(msgBytes))
 	// 写入消息长度
 	err = binary.Write(conn, binary.BigEndian, uint32(len(msgBytes)))
 	if err != nil {
@@ -140,11 +140,11 @@ func WriteForSyncRespMsg(conn *net.TCPConn, respMsg *SyncRespMsg) error {
 		return err
 	}
 	// 写入消息内容
-	n, err := conn.Write(msgBytes)
+	_, err = conn.Write(msgBytes)
 	if err != nil {
 		logger.Error("write msg failed. err: %v", err)
 		return err
 	}
-	logger.Info("writed msg len: %v", n)
+	// logger.Info("writed msg len: %v", n)
 	return nil
 }

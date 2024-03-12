@@ -321,6 +321,12 @@ func (sc *SyncClient) SyncFiles(diffFiles map[string]*sync.SyncFileInfo) {
 		sc.infoChan <- sInfo
 	}
 	sum := 0
+	go func() {
+		for sum < len(diffFiles) {
+			logger.Info("%v files has been synced", sum)
+			time.Sleep(time.Second * 5)
+		}
+	}()
 	for n := range resChan {
 		sum += n
 		if sum >= len(diffFiles) {
